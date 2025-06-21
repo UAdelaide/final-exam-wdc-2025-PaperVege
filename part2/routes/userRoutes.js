@@ -36,23 +36,37 @@ router.get('/me', (req, res) => {
 });
 
 // POST login (dummy version)
+// userRoutes.js
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
-  try {
-    const [rows] = await db.query(`
-      SELECT user_id, username, role FROM Users
-      WHERE email = ? AND password_hash = ?
-    `, [email, password]);
+  const [rows] = await db.query(`
+    SELECT user_id, username, role FROM Users
+    WHERE username = ? AND password_hash = ?
+  `, [username, password]);
 
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    res.json({ message: 'Login successful', user: rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+  if (rows.length === 0) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
+
+  req.session.user = {
+    user_id: rows[0].user_id,
+    username: rows[0].username,
+    role: rows[0].role
+  };
+
+  res.json({ message: 'Login successful', user: rows[0] });
+});
+
+
+router.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.clearCookie('dogwalk.sid'); 
+    res.json({ message: 'Logged out' });
+  });
 });
 
 module.exports = router;

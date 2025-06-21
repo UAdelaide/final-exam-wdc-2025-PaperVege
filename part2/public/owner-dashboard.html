@@ -10,7 +10,10 @@
 <body class="bg-light">
   <div id="app" class="container py-4">
     <h1 class="mb-4 text-primary">Owner Dashboard</h1>
-
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2></h2>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
     <!-- Walk request form -->
     <div class="card mb-4">
       <div class="card-header bg-primary text-white">
@@ -19,8 +22,12 @@
       <div class="card-body">
         <form @submit.prevent="submitWalkRequest">
           <div class="mb-3">
-            <label class="form-label">Dog ID</label>
-            <input v-model="form.dog_id" type="number" class="form-control" required>
+      <select v-model="form.dog_id" class="form-select mb-3" required>
+        <option value="">-- Choose a dog --</option>
+        <option v-for="dog in dogs" :key="dog.dog_id" :value="dog.dog_id">
+          {{ dog.name }}
+        </option>
+      </select>
           </div>
           <div class="mb-3">
             <label class="form-label">Requested Date & Time</label>
@@ -69,6 +76,7 @@
 
     createApp({
       setup() {
+        const dogs = ref([]);
         const form = ref({
           dog_id: '',
           requested_time: '',
@@ -115,8 +123,20 @@
           }
         }
 
+        async function loadDogs() {
+          try {
+            const res = await fetch('/dogs/mine', { credentials: 'include' });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            dogs.value = await res.json();
+          } catch (err) {
+            console.error('Dog loading failed:', err);
+            error.value = 'Failed to load your dogs';
+          }
+        }
+
         onMounted(() => {
           loadWalks();
+          loadDogs();
         });
 
         return {
@@ -124,11 +144,25 @@
           walks,
           message,
           error,
+          dogs, 
           submitWalkRequest
         };
       }
     }).mount('#app');
-  </script>
+
+async function logout() {
+  const res = await fetch('api/users/logout', {
+    method: 'POST',
+    credentials: 'include'
+  });
+  if (res.ok) {
+    window.location.href = 'index.html';
+  } else {
+    alert('Logout failed');
+  }
+}
+window.onload = loadDogs;
+</script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
