@@ -62,20 +62,36 @@
 
         async function applyToWalk(requestId) {
           try {
+            const walkerId = await getCurrentUser();
+
             const res = await fetch(`/api/walks/${requestId}/apply`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ walker_id: user })
+              credentials: 'include',
+              body: JSON.stringify({ walker_id: walkerId })
             });
-            const result = await res.json();
 
-            if (!res.ok) throw new Error(result.error || 'Application failed');
-            message.value = result.message;
-            error.value = '';
-            await loadWalkRequests();
-          } catch (err) {
-            error.value = err.message;
-            message.value = '';
+            if (!res.ok) {
+              const result = await res.json();
+              throw new Error(result.error || 'Failed to apply to walk');
+            }
+
+            alert('Applied successfully!');
+            loadWalkRequests();
+            } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        }
+
+        async function getCurrentUser() {
+          const res = await fetch('/api/users/me', {
+            credentials: 'include'
+          });
+          if (res.ok) {
+            const user = await res.json();
+            return user.user_id;
+          } else {
+            throw new Error('Failed to fetch current user');
           }
         }
 
@@ -91,18 +107,16 @@
         };
       }
     }).mount('#app');
-  </script>
-  
-<script>
+
 async function logout() {
-  const res = await fetch('api/users/logout', { method: 'POST' });
+const res = await fetch('api/users/logout', { method: 'POST' });
   if (res.ok) {
     window.location.href = 'index.html';
   } else {
-    alert('Logout failed');
+alert('Logout failed');
   }
 }
-</script>  
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
